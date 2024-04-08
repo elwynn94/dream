@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <title>꿈러리</title>
+</head>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+    //크리에이트 = addDoc
+    //리드 = getDocs
+    //업데이트 = updateDoc
+    //딜리트 = deleteDoc
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBJjynWr0LoVFbJgOm5MVz2q5XfCozCAsE",
+        authDomain: "spartatest-f638d.firebaseapp.com",
+        projectId: "spartatest-f638d",
+        storageBucket: "spartatest-f638d.appspot.com",
+        messagingSenderId: "576318895369",
+        appId: "1:576318895369:web:3941a32b6190cc84dc8fd8",
+        measurementId: "G-B3H2JY72M1"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let users = await getDocs(collection(db, "User"));
+
+
+    // [CREATE] 팝업 - 등록하기 버튼
+    $("#saveBtn").click(async function () {
+        let profile_img_url = $("#profile_img_url").val();
+        let name = $("#name").val();
+        let goal = $("#goal").val();
+        let description = $("#description").val();
+
+        if (profile_img_url === '' || name === '' || goal === '' || description === '') { //데이터 입력 확인
+            alert("정보를 모두 입력해주세요.")
+        } else {
+            let doc = {
+                'profile_img_url': profile_img_url,
+                'goal': goal,
+                'name': name,
+                'description': description
+            }
+            await addDoc(collection(db, "User"), doc);
+            alert('저장 완료!');
+            window.location.reload();
+        }
+    });
+
+
+
+    // [DELETE] 팝업 - 삭제하기 버튼
+    $("#deleteBtn").click(async function () {
+        let userId = $(this).attr("data-id");
+        console.log(userId)
+        await deleteDoc(doc(db, "User", userId));
+        window.location.reload();
+    });
+
+
+    
+    // [UPDATE] 팝업 - 업데이트하기 버튼
+    $("#updateBtn").click(async function () {
+        let userId = $(this).attr("data-id");
+
+        let profile_img_url = $("#update_profile_img_url").val();;
+        let goal = $("#update_goal").val();
+        let name = $("#update_name").val();
+        let description = $("#updateDescription").val();
+
+        let dataToUpdate = {
+            'profile_img_url': profile_img_url,
+            'goal': goal,
+            'name': name,
+            'description': description
+        };
+
+        await updateDoc(doc(db, "User", userId), dataToUpdate);
+        alert('수정 완료!');
+        window.location.reload();
+    });
+
+
+
+    // [TEMPLATE]
+    users.forEach((user) => {
+        let row = user.data();
+
+        let temp_profile_info_html = `
+                <div class="profile-info">
+                    <div class="delete-btn" data-id="${user.id}"></div>
+                    <div class="update-btn" data-id="${user.id}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path style="fill : #c6c6c6" d="M362.7 19.3L314.3 67.7 444.3 197.7l48.4-48.4c25-25 25-65.5 0-90.5L453.3 19.3c-25-25-65.5-25-90.5 0zm-71 71L58.6 323.5c-10.4 10.4-18 23.3-22.2 37.4L1 481.2C-1.5 489.7 .8 498.8 7 505s15.3 8.5 23.7 6.1l120.3-35.4c14.1-4.2 27-11.8 37.4-22.2L421.7 220.3 291.7 90.3z"/></svg></div>
+                    <div class="profile-image">
+                        <img src="${row["profile_img_url"]}" alt="원형 이미지">
+                    </div>
+                    <p class="p-goal">${row["goal"]}</p>
+                    <p class="p-name">${row["name"]}</p>
+                </div>
+            `;
+        $("#profileList").append(temp_profile_info_html);
+
+
+        let temp_profile_detail_area_html = `
+                <div class="profile-detail-area" data-id="${user.id}">
+                    <div class="inner">
+                        <div class="profile-detail-wrap">
+                            <div class="profile-detail-info">
+                                <div class="profile-image">
+                                    <img src="${row["profile_img_url"]}" alt="원형 이미지">
+                                </div>
+                                <div class="text-wrap">
+                                    <p class="p-d-is">나의 꿈은</p>
+                                    <div class="p-d-goal-name-wrap">
+                                        <span class="p-d-goal">${row["goal"]}</span>
+                                        <span class="p-d-name">${row["name"]}</span>
+                                    </div>
+                                    <span class="p-d-description">${row["description"]}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        $("#profileDetailInfoList").append(temp_profile_detail_area_html)
+    });
+
+
+    // 등록팝업 띄우기 버튼
+    $(".share-btn").click(function () {
+        $(".share-popup").show();
+        $(".disabled-cover").show();
+        $(".disabled-cover").animate({
+            opacity: 0.8
+        }, 500); // 500ms(1초) 동안 투명도를 0.2로 변경
+    });
+
+    // 수정팝업 띄우기 버튼
+    $(".update-btn").click(function () {
+        let userId = $(this).attr("data-id");
+        let imgURL = $(".profile-detail-area[data-id='" + userId + "']").find("img").attr("src");
+        let goalValue = $(".profile-detail-area[data-id='" + userId + "']").find(".p-d-goal").text();
+        let nameValue = $(".profile-detail-area[data-id='" + userId + "']").find(".p-d-name").text();
+        let descriptionValue = $(".profile-detail-area[data-id='" + userId + "']").find(".p-d-description").text();
+
+        $("#update_profile_img_url").val(imgURL);
+        $("#update_goal").val(goalValue);
+        $("#update_name").val(nameValue);
+        $("#updateDescription").val(descriptionValue);
+
+
+        $(".update-popup").show();
+        $(".disabled-cover").show();
+        $(".disabled-cover").animate({
+            opacity: 0.8
+        }, 500); // 500ms(1초) 동안 투명도를 0.2로 변경 
+        $("#updateBtn").attr("data-id", userId)   
+    });
+
+    // 삭제팝업 띄우기 버튼
+    $(".delete-btn").click(function () {
+        $(".delete-popup").show();
+        $(".disabled-cover").show();
+        $(".disabled-cover").animate({
+            opacity: 0.8
+        }, 500); // 500ms(1초) 동안 투명도를 0.2로 변경
+        let userId = $(this).attr("data-id");
+        $("#deleteBtn").attr("data-id", userId)
+    });
+
+
+    // 등록,삭제팝업 - 취소버튼
+    $(".cancel-btn").click(function () {
+        console.log("hh")
+        $(".delete-popup").hide();
+        $(".popup").hide();
+        $(".disabled-cover").animate({
+            opacity: 0.0
+        }, 500); // 500ms(1초) 동안 투명도를 0.2로 변경
+        $(".disabled-cover").hide();
+        $('.form-control, #description').val(''); //취소 클릭시 인풋 초기화
+    });
+
+
+    //input에 value 값이 존재 하지 않을 경우 saveBtn disabled 처리
+    $('.form-control, #description').on('input', function () {
+        // 모든 입력 필드를 검사하여 값이 있는지 확인
+        var allFilled = true;
+        $('.form-control, #description').each(function () {
+            if ($(this).val() === '') {
+                allFilled = false;
+                return false;
+            }
+        });
+
+        // 모든 인풋이 채워져 있으면 saveBtn의 배경색 변경
+        if (allFilled) {
+            $('#saveBtn').css('background-color', '#FFECB7');
+            $('#saveBtn').css('color', '#000000');
+        } else {
+            $('#saveBtn').css('background-color', '');
+        }
+    });
+
+    //input에 value 값이 존재 하지 않을 경우 saveBtn disabled 처리
+    $('.form-control-update, #updateDescription').on('input', function () {
+        // 모든 입력 필드를 검사하여 값이 있는지 확인
+        var allFilled = true;
+        $('.form-control-update, #updateDescription').each(function () {
+            if ($(this).val() === '') {
+                allFilled = false;
+                return false;
+            }
+        });
+
+        // 모든 인풋이 채워져 있으면 saveBtn의 배경색 변경
+        if (allFilled) {
+            $('#updateBtn').css('background-color', '#FFECB7');
+            $('#updateBtn').css('color', '#000000');
+        } else {
+            $('#updateBtn').css('background-color', '');
+        }
+    });
+
+
+</script>
+
+<style>
+    @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");
+
+    * {
+        font-family: 'Pretendard';
+    }
+
+    svg {
+        width: 17px;
+        margin: 11.5px;
+    }
+
+    body {
+        /* width: 100%; */
+        max-width: 1920px;
+        margin: 0 auto;
+        font-size: 0px;
+        background-color: #191919;
+    }
+
+    p {
+        margin: 0px;
+    }
+
+    img {
+        /* max-width: 1920px; */
+        width: 100%;
+
+    }
+
+    .inner {
+        max-width: 1160px;
+        width: 100%;
+        margin: 0 auto;
+    }
+
+    .header {
+        max-width: 1920px;
+        width: 100%;
+        background-color: #191919;
+    }
+
+
+    /*///profile-area 영역입니다.///*/
+    .profile-area {
+        background-color: #191919;
+        padding: 66px 0px 146px 0px;
+    }
+
+    .profile-area .profile-info-wrap {
+        display: flex;
+        justify-content: space-evenly;
+        flex-wrap: wrap;
+    }
+
+    .profile-area .profile-info-wrap .profile-image {
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .profile-area .profile-info-wrap .profile-info {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        margin: 80px 30px 0px 30px;
+    }
+
+    .profile-area .profile-info-wrap .profile-info:nth-child(n+5) {
+        position: relative;
+    }
+
+    .delete-btn,
+    .update-btn {
+        opacity: 0;
+        transition: opacity 0.5s ease-in-out;
+    }
+
+    .profile-info:hover .delete-btn,
+    .profile-info:hover .update-btn {
+        opacity: 1;
+    }
+
+
+
+    .profile-area .profile-info-wrap .profile-info .delete-btn,
+    .update-btn {
+        display: none;
+    }
+
+    .profile-area .profile-info-wrap .profile-info:nth-child(n+5) .delete-btn {
+        display: block;
+        width: 40px;
+        height: 40px;
+        background-color: #646464;
+        border-radius: 50%;
+        position: absolute;
+        top: 0;
+        right: 0;
+        transform: translate(50%, -50%);
+        cursor: pointer;
+    }
+
+    .profile-area .profile-info-wrap .profile-info:nth-child(n+5) .update-btn {
+        display: block;
+        width: 40px;
+        height: 40px;
+        background-color: #646464;
+        border-radius: 50%;
+        position: absolute;
+        top: 0;
+        right: 50px;
+        transform: translate(50%, -50%);
+        cursor: pointer;
+    }
+
+    .profile-area .profile-info-wrap .profile-info:nth-child(n+5) .delete-btn::before,
+    .delete-btn::after {
+        content: '';
+        position: absolute;
+        width: 3px;
+        border-radius: 2px;
+        height: 50%;
+        background-color: #c6c6c6;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(45deg);
+        /* 첫 번째 선 */
+    }
+
+    .profile-area .profile-info-wrap .profile-info:nth-child(n+5) .delete-btn::after {
+        transform: translate(-50%, -50%) rotate(-45deg);
+        /* 두 번째 선 */
+    }
+
+
+    .profile-area .profile-info-wrap .profile-info .profile-image img {
+        width: 100%;
+        height: auto;
+    }
+
+
+    .profile-area .profile-info-wrap .profile-info .p-goal {
+        display: inline;
+        font-size: 21px;
+        font-weight: 300;
+        color: white;
+        margin-bottom: 8px;
+    }
+
+    .profile-area .profile-info-wrap .profile-info .p-name {
+        color: white;
+        font-size: 23px;
+        font-weight: 600;
+    }
+
+
+    /*///profile-detail-area 영역입니다.///*/
+    .profile-detail-area {
+        background-color: #292929;
+        padding: 100px 0px
+    }
+
+    .profile-detail-area:nth-child(even) {
+        background-color: #191919;
+    }
+
+    /* .profile-detail-area .profile-detail-wrap{
+        display: flex;
+        flex-wrap: wrap;
+    } */
+
+    .profile-detail-area .profile-detail-wrap .profile-detail-info {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .profile-detail-area .profile-detail-wrap .profile-detail-info .profile-image {
+        width: 330px;
+        height: 330px;
+        border-radius: 50%;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-right: 100px;
+    }
+
+    .profile-detail-area .profile-detail-wrap .profile-detail-info .text-wrap {
+        display: flex;
+        align-items: flex-start;
+        flex-direction: column;
+        max-width: 690px;
+    }
+
+    .profile-detail-area .profile-detail-wrap .profile-detail-info .p-d-is {
+        font-size: 24px;
+        font-weight: 200;
+        color: white;
+        margin-bottom: 10px;
+    }
+
+    .profile-detail-area .profile-detail-wrap .profile-detail-info .p-d-goal {
+        font-size: 35px;
+        font-weight: 600;
+        color: white;
+        margin-right: 10px;
+    }
+
+    .profile-detail-area .profile-detail-wrap .profile-detail-info .p-d-name {
+        font-size: 30px;
+        font-weight: 200;
+        color: white;
+    }
+
+    .profile-detail-area .profile-detail-wrap .profile-detail-info .p-d-goal-name-wrap {
+        margin-bottom: 30px;
+    }
+
+    .profile-detail-area .profile-detail-wrap .profile-detail-info .p-d-description {
+        font-size: 18px;
+        font-weight: 200;
+        color: #d8d8d8;
+        word-break: keep-all;
+        word-wrap: break-word;
+        line-height: 1.5;
+    }
+
+    /*///꿈 공유하기 버튼 영역입니다.///*/
+    .share-btn {
+        display: inline-block;
+        font-size: 24px;
+        color: black;
+        padding: 15px 40px;
+
+        position: fixed;
+        left: 50%;
+        bottom: 60px;
+        transform: translateX(-50%);
+
+        background-color: #FFECB7;
+        font-weight: 600;
+        border-radius: 38px;
+
+        cursor: pointer;
+
+        z-index: 2;
+    }
+
+    /* ///삭제하기 버튼 팝업 영역입니다./// */
+    .delete-popup {
+        display: none;
+        max-width: 800px;
+        width: 100%;
+        padding: 100px 70px 60px 70px;
+        background-color: #191919;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border-radius: 40px;
+        text-align: center;
+        z-index: 5;
+    }
+
+    .delete-popup .warning-text {
+        color: white;
+        font-size: 28px;
+        font-weight: 400;
+        margin-bottom: 60px;
+    }
+
+    .delete-popup .button-wrap #deleteBtn {
+        font-size: 22px;
+        font-weight: 600;
+        padding: 10px 26px;
+        background-color: #FFECB7;
+        color: black;
+        border-radius: 38px;
+        margin-right: 20px;
+        cursor: pointer;
+    }
+
+    .delete-popup .button-wrap .cancel-btn {
+        font-size: 22px;
+        font-weight: 600;
+        padding: 10px 26px;
+        color: #2F2F2F;
+        background-color: #D8D8D8;
+        border-radius: 38px;
+        cursor: pointer;
+    }
+
+
+    /*///꿈 공유하기 버튼 팝업 영역입니다.///*/
+    .popup {
+        display: none;
+        max-width: 800px;
+        width: 100%;
+        padding: 100px 70px 60px 70px;
+        background-color: #191919;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border-radius: 40px;
+        z-index: 5;
+        box-shadow: 0px -1px 16px 0px rgba(255, 255, 255, 0.3);
+    }
+
+
+    .popup input {
+        width: 100%;
+        height: 33px;
+        background-color: #303030;
+        border: none;
+        /* 테두리 제거 */
+        border-radius: 10px;
+        /* 둥근 모서리 적용 */
+        padding: 10px 0px 10px 30px;
+        color: white;
+        font-size: 18px;
+        margin-bottom: 20px;
+    }
+
+    .popup textarea {
+        width: 100%;
+        height: 103px;
+        background-color: #303030;
+        border: none;
+        /* 테두리 제거 */
+        border-radius: 10px;
+        /* 둥근 모서리 적용 */
+        padding: 30px 0px 30px 30px;
+        color: white;
+        font-size: 18px;
+        margin-bottom: 20px;
+    }
+
+    .popup textarea:focus {
+        border-color: white;
+        /* 활성화 시 테두리 색상 변경 */
+        outline: none;
+        /* 기본 윤곽선 제거 */
+    }
+
+    .popup input:focus {
+        border-color: white;
+        /* 활성화 시 테두리 색상 변경 */
+        outline: none;
+        /* 기본 윤곽선 제거 */
+    }
+
+    .popup #saveBtn,
+    #updateBtn {
+        font-size: 22px;
+        font-weight: 600;
+        padding: 10px 26px;
+        /* background-color: #FFECB7; */
+        background-color: #5c5c5c;
+        color: #6b6b6b;
+        border-radius: 38px;
+        margin-right: 20px;
+        cursor: pointer;
+    }
+
+    .popup .cancel-btn {
+        font-size: 22px;
+        font-weight: 600;
+        padding: 10px 26px;
+        color: #2F2F2F;
+        background-color: #D8D8D8;
+        border-radius: 38px;
+        cursor: pointer;
+    }
+
+    .button-wrap {
+        display: flex;
+        justify-content: center;
+    }
+
+    .disabled-cover {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0.6;
+        background-color: #757575;
+        z-index: 3;
+        display: none;
+    }
+</style>
+
+<body>
+    <div class="share-popup popup">
+        <div class="form">
+            <input class="form-control" id="profile_img_url" placeholder="이미지 URL">
+        </div>
+        <div class="form">
+            <input class="form-control" id="name" placeholder="이름">
+        </div>
+
+        <div class="form">
+            <input class="form-control" id="goal" placeholder="나의 꿈">
+        </div>
+
+        <div class="form-floating mb-3">
+            <textarea id="description" rows="4" cols="50" placeholder="나의 소개"></textarea>
+        </div>
+
+        <div class="button-wrap">
+            <div id="saveBtn" type="button">등록하기</div>
+            <div class="cancel-btn" type="button">취소</div>
+        </div>
+    </div>
+
+    <div class="update-popup popup">
+        <div class="form">
+            <input class="form-control-update" data-id='' id="update_profile_img_url" placeholder="이미지 URL">
+        </div>
+        <div class="form">
+            <input class="form-control-update" data-id='' id="update_name" placeholder="이름">
+        </div>
+
+        <div class="form">
+            <input class="form-control-update" data-id='' id="update_goal" placeholder="나의 꿈">
+        </div>
+
+        <div class="form-floating mb-3">
+            <textarea id="updateDescription" data-id='' rows="4" cols="50" placeholder="나의 소개"></textarea>
+        </div>
+
+        <div class="button-wrap">
+            <div id="updateBtn" type="button">수정하기</div>
+            <div class="cancel-btn" type="button">취소</div>
+        </div>
+    </div>
+
+    <div class="delete-popup">
+        <p class="warning-text">정보를 삭제하시겠습니까?</p>
+        <div class="button-wrap">
+            <div id="deleteBtn" data-id="">삭제하기</div>
+            <div class="cancel-btn" type="button">취소</div>
+        </div>
+    </div>
+
+    <div class="disabled-cover"></div>
+
+    <div class="share-btn">나의 꿈 공유하기</div>
+
+
+    <div class="header">
+        <img src="./img/00_header.png">
+    </div>
+    <div class="profile-area">
+        <div class="inner">
+            <div class="profile-info-wrap" id="profileList">
+                <!-- [[[[[[테스트 데이터 입니다. 삭제하지 말아주세요!]]]]] -->
+                <!-- [[[[[[테스트 데이터 입니다. 삭제하지 말아주세요!]]]]] -->
+                <!-- [[[[[[테스트 데이터 입니다. 삭제하지 말아주세요!]]]]] -->
+
+                <!-- <div class="profile-info">
+                    <div class="delete-btn" data-id="test"></div>
+                    <div class="update-btn" data-id="test"><i class="fa-solid fa-pen"></i></div>
+                    <div class="profile-image">
+                        <img src="https://ifh.cc/g/sgQTLY.jpg" alt="원형 이미지">
+                    </div>
+                    <p class="p-goal">최고의 CTO</p>
+                    <p class="p-name">어동선</p>
+                </div>
+                <div class="profile-info">
+                    <div class="delete-btn" data-id="tes2"></div>
+                    <div class="update-btn" data-id="test"><i class="fa-solid fa-pen"></i></div>
+                    <div class="profile-image">
+                        <img src="https://ifh.cc/g/cSGMPG.jpg" alt="원형 이미지">
+                    </div>
+                    <p class="p-goal">포기하지 않는 개발자</p>
+                    <p class="p-name">김예현</p>
+                </div>
+                <div class="profile-info">
+                    <div class="delete-btn" data-id="test3"></div>
+                    <div class="update-btn" data-id="test"><i class="fa-solid fa-pen"></i></div>
+                    <div class="profile-image">
+                        <img src="https://ifh.cc/g/mATD3g.png" alt="원형 이미지">
+                    </div>
+                    <p class="p-goal">백엔드의 정점</p>
+                    <p class="p-name">박준영</p>
+                </div>
+                <div class="profile-info">
+                    <div class="delete-btn" data-id="tes4"></div>
+                    <div class="update-btn" data-id="test"><i class="fa-solid fa-pen"></i></div>
+                    <div class="profile-image">
+                        <img src="https://ifh.cc/g/0RL9V6.jpg" alt="원형 이미지">
+                    </div>
+                    <p class="p-goal">자바스프링 마스터</p>
+                    <p class="p-name">황태경</p>
+                </div>
+                <div class="profile-info">
+                    <div class="delete-btn" data-id="test2"></div>
+                    <div class="update-btn" data-id="test2"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path style="fill : #c6c6c6" d="M362.7 19.3L314.3 67.7 444.3 197.7l48.4-48.4c25-25 25-65.5 0-90.5L453.3 19.3c-25-25-65.5-25-90.5 0zm-71 71L58.6 323.5c-10.4 10.4-18 23.3-22.2 37.4L1 481.2C-1.5 489.7 .8 498.8 7 505s15.3 8.5 23.7 6.1l120.3-35.4c14.1-4.2 27-11.8 37.4-22.2L421.7 220.3 291.7 90.3z"/></svg></div>
+                    <div class="profile-image">
+                        <img src="https://ifh.cc/g/0RL9V6.jpg" alt="원형 이미지">
+                    </div>
+                    <p class="p-goal">자바스프링 마스터</p>
+                    <p class="p-name">황태경</p>
+                </div> -->
+            </div>
+
+        </div>
+    </div>
+    <div id="profileDetailInfoList">
+
+        <!-- [[[[[[테스트 데이터 입니다. 삭제하지 말아주세요!]]]]] -->
+        <!-- [[[[[[테스트 데이터 입니다. 삭제하지 말아주세요!]]]]] -->
+        <!-- [[[[[[테스트 데이터 입니다. 삭제하지 말아주세요!]]]]] -->
+
+        <!-- <div class="profile-detail-area">
+            <div class="inner">
+                <div class="profile-detail-wrap">
+                    <div class="profile-detail-info">
+                        <div class="profile-image">
+                            <img src="https://ifh.cc/g/sgQTLY.jpg" alt="원형 이미지">
+                        </div>
+                        <div class="text-wrap">
+                            <p class="p-d-is">나의 꿈은</p>
+                            <div class="p-d-goal-name-wrap">
+                                <span class="p-d-goal">최고의 CTO</span>
+                                <span class="p-d-name">어동선</span>
+                            </div>
+                            <span class="p-d-description">개발의 세계는 너무 넓고 뛰어난 사람들이 너무나 많습니다.<br>비 전공자인 저는 처음 개발을 배울 때 누구보다
+                                많이
+                                눈치를 보고 이는 저에게 큰 부담으로 다가왔었습니다.<br><br>하지만 개발을 시작한지 어느덧 3년이 되니, 스스로 공부할 방향성을 찾을 수 있었고, 개발에
+                                재미를
+                                느끼게 되었습니다. 이런 깨달음은 짧기도 하지만 길었던 3년이란 시간에 포기하지 않았던 나 자신이 있어서 가능했다고 생각합니다. 누구보다 뛰어난 지식의
+                                개발자라기
+                                보단, 포기하지 않는 개발자가 되는게 저의 목표입니다.</span>
+                        </div>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="profile-detail-area">
+            <div class="inner">
+                <div class="profile-detail-wrap">
+                    <div class="profile-detail-info">
+                        <div class="profile-image">
+                            <img src="https://ifh.cc/g/cSGMPG.jpg" alt="원형 이미지">
+                        </div>
+                        <div class="text-wrap">
+                            <p class="p-d-is">나의 꿈은</p>
+                            <div class="p-d-goal-name-wrap">
+                                <span class="p-d-goal">포기하지 않는 개발자</span>
+                                <span class="p-d-name">김예현</span>
+                            </div>
+                            <span class="p-d-description">개발의 세계는 너무 넓고 뛰어난 사람들이 너무나 많습니다.<br>비 전공자인 저는 처음 개발을 배울 때 누구보다
+                                많이
+                                눈치를 보고 이는 저에게 큰 부담으로 다가왔었습니다.<br><br>하지만 개발을 시작한지 어느덧 3년이 되니, 스스로 공부할 방향성을 찾을 수 있었고, 개발에
+                                재미를
+                                느끼게 되었습니다. 이런 깨달음은 짧기도 하지만 길었던 3년이란 시간에 포기하지 않았던 나 자신이 있어서 가능했다고 생각합니다. 누구보다 뛰어난 지식의
+                                개발자라기
+                                보단, 포기하지 않는 개발자가 되는게 저의 목표입니다.</span>
+                        </div>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="profile-detail-area">
+            <div class="inner">
+                <div class="profile-detail-wrap">
+                    <div class="profile-detail-info">
+                        <div class="profile-image">
+                            <img src="https://ifh.cc/g/mATD3g.png" alt="원형 이미지">
+                        </div>
+                        <div class="text-wrap">
+                            <p class="p-d-is">나의 꿈은</p>
+                            <div class="p-d-goal-name-wrap">
+                                <span class="p-d-goal">백엔드의 정점</span>
+                                <span class="p-d-name">박준영</span>
+                            </div>
+                            <span class="p-d-description">개발의 세계는 너무 넓고 뛰어난 사람들이 너무나 많습니다.<br>비 전공자인 저는 처음 개발을 배울 때 누구보다
+                                많이
+                                눈치를 보고 이는 저에게 큰 부담으로 다가왔었습니다.<br><br>하지만 개발을 시작한지 어느덧 3년이 되니, 스스로 공부할 방향성을 찾을 수 있었고, 개발에
+                                재미를
+                                느끼게 되었습니다. 이런 깨달음은 짧기도 하지만 길었던 3년이란 시간에 포기하지 않았던 나 자신이 있어서 가능했다고 생각합니다. 누구보다 뛰어난 지식의
+                                개발자라기
+                                보단, 포기하지 않는 개발자가 되는게 저의 목표입니다.</span>
+                        </div>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="profile-detail-area">
+            <div class="inner">
+                <div class="profile-detail-wrap">
+                    <div class="profile-detail-info">
+                        <div class="profile-image">
+                            <img src="https://ifh.cc/g/0RL9V6.jpg" alt="원형 이미지">
+                        </div>
+                        <div class="text-wrap">
+                            <p class="p-d-is">나의 꿈은</p>
+                            <div class="p-d-goal-name-wrap">
+                                <span class="p-d-goal">자바스프링 마스터</span>
+                                <span class="p-d-name">황태경</span>
+                            </div>
+                            <span class="p-d-description">개발의 세계는 너무 넓고 뛰어난 사람들이 너무나 많습니다.<br>비 전공자인 저는 처음 개발을 배울 때 누구보다
+                                많이
+                                눈치를 보고 이는 저에게 큰 부담으로 다가왔었습니다.<br><br>하지만 개발을 시작한지 어느덧 3년이 되니, 스스로 공부할 방향성을 찾을 수 있었고, 개발에
+                                재미를
+                                느끼게 되었습니다. 이런 깨달음은 짧기도 하지만 길었던 3년이란 시간에 포기하지 않았던 나 자신이 있어서 가능했다고 생각합니다. 누구보다 뛰어난 지식의
+                                개발자라기
+                                보단, 포기하지 않는 개발자가 되는게 저의 목표입니다.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="profile-detail-area" date-id="test2">
+            <div class="inner">
+                <div class="profile-detail-wrap">
+                    <div class="profile-detail-info">
+                        <div class="profile-image">
+                            <img src="https://ifh.cc/g/0RL9V6.jpg" alt="원형 이미지">
+                        </div>
+                        <div class="text-wrap">
+                            <p class="p-d-is">나의 꿈은</p>
+                            <div class="p-d-goal-name-wrap">
+                                <span class="p-d-goal">자바스프링 마스터</span>
+                                <span class="p-d-name">황태경</span>
+                            </div>
+                            <span class="p-d-description">개발의 세계는 너무 넓고 뛰어난 사람들이 너무나 많습니다.<br>비 전공자인 저는 처음 개발을 배울 때 누구보다
+                                많이
+                                눈치를 보고 이는 저에게 큰 부담으로 다가왔었습니다.<br><br>하지만 개발을 시작한지 어느덧 3년이 되니, 스스로 공부할 방향성을 찾을 수 있었고, 개발에
+                                재미를
+                                느끼게 되었습니다. 이런 깨달음은 짧기도 하지만 길었던 3년이란 시간에 포기하지 않았던 나 자신이 있어서 가능했다고 생각합니다. 누구보다 뛰어난 지식의
+                                개발자라기
+                                보단, 포기하지 않는 개발자가 되는게 저의 목표입니다.</span>
+                        </div>
+                    </div>
+                </div>
+            </div> -->
+        </div>
+    </div>
+
+    <div class="footer">
+        <img src="./img/01_footer.png">
+    </div>
+
+
+</body>
+
+</html>
